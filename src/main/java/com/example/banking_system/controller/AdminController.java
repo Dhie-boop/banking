@@ -1,11 +1,14 @@
 package com.example.banking_system.controller;
 
 import com.example.banking_system.dto.MessageResponse;
+import com.example.banking_system.dto.RegisterRequest;
 import com.example.banking_system.dto.TransactionResponse;
+import com.example.banking_system.entity.Role;
 import com.example.banking_system.entity.Transaction;
 import com.example.banking_system.entity.User;
 import com.example.banking_system.repository.TransactionRepository;
 import com.example.banking_system.repository.UserRepository;
+import com.example.banking_system.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -36,6 +39,9 @@ public class AdminController {
 
     @Autowired
     private TransactionRepository transactionRepository;
+    
+    @Autowired
+    private AuthService authService;
 
     @GetMapping("/users")
     @Operation(
@@ -241,6 +247,72 @@ public class AdminController {
         public String getAccountType() { return accountType; }
         public java.math.BigDecimal getBalance() { return balance; }
         public java.time.LocalDateTime getCreatedAt() { return createdAt; }
+    }
+
+    @PostMapping("/create-admin")
+    @Operation(
+        summary = "Create admin user", 
+        description = "Create a new admin user. Only existing admins can create new admin accounts."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "Admin user created successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MessageResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400", 
+            description = "Username or email already exists",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MessageResponse.class)
+            )
+        )
+    })
+    public ResponseEntity<?> createAdminUser(@RequestBody RegisterRequest registerRequest) {
+        try {
+            authService.createAdminUser(registerRequest, Role.RoleName.ADMIN);
+            return ResponseEntity.ok(new MessageResponse("Admin user created successfully!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse(e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/create-teller")
+    @Operation(
+        summary = "Create teller user", 
+        description = "Create a new teller user. Only existing admins can create new teller accounts."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "Teller user created successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MessageResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400", 
+            description = "Username or email already exists",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MessageResponse.class)
+            )
+        )
+    })
+    public ResponseEntity<?> createTellerUser(@RequestBody RegisterRequest registerRequest) {
+        try {
+            authService.createAdminUser(registerRequest, Role.RoleName.TELLER);
+            return ResponseEntity.ok(new MessageResponse("Teller user created successfully!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse(e.getMessage()));
+        }
     }
 
     public static class UserStatusRequest {

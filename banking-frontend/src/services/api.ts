@@ -4,6 +4,7 @@ import type {
   LoginRequest, 
   RegisterRequest, 
   AuthResponse,
+  JwtResponse,
   Account,
   CreateAccountRequest,
   Transaction,
@@ -51,12 +52,23 @@ api.interceptors.response.use(
 // Auth API calls
 export const authAPI = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/login', data);
-    return response.data;
+    const response = await api.post<JwtResponse>('/auth/login', data);
+    
+    // Convert backend JwtResponse to frontend AuthResponse format
+    const jwtData = response.data;
+    return {
+      token: jwtData.token,
+      user: {
+        id: jwtData.id,
+        username: jwtData.username,
+        email: jwtData.email,
+        role: jwtData.role
+      }
+    };
   },
 
-  register: async (data: RegisterRequest): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/register', data);
+  register: async (data: RegisterRequest): Promise<{message: string}> => {
+    const response = await api.post<{message: string}>('/auth/register', data);
     return response.data;
   },
 

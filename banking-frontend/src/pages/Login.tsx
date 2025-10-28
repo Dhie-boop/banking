@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiDollarSign } from 'react-icons/fi';
+import { FiUser, FiLock, FiEye, FiEyeOff, FiDollarSign } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { authAPI } from '../services/api';
 import authService from '../services/auth';
@@ -10,7 +10,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const [formData, setFormData] = useState<LoginFormData>({
-    email: '',
+    username: '',
     password: '',
   });
   const [loading, setLoading] = useState(false);
@@ -18,16 +18,33 @@ export default function Login() {
 
   // Redirect if already logged in
   useEffect(() => {
+    // Clear any invalid tokens from previous sessions
+    if (localStorage.getItem('token') && !authService.isAuthenticated()) {
+      authService.clearAuthData();
+    }
+    
     if (authService.isAuthenticated()) {
       const redirectPath = authService.getRedirectPath();
       navigate(redirectPath, { replace: true });
+      return;
     }
-  }, [navigate]);
+
+    // Handle registration redirect with success message and pre-filled username
+    const state = location.state as any;
+    if (state?.message) {
+      toast.success(state.message);
+      if (state.username) {
+        setFormData(prev => ({ ...prev, username: state.username }));
+      }
+      // Clear the state to prevent showing the message again on refresh
+      navigate(location.pathname, { replace: true });
+    }
+  }, [navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.password) {
+    if (!formData.username || !formData.password) {
       toast.error('Please fill in all fields');
       return;
     }
@@ -78,25 +95,25 @@ export default function Login() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Email */}
+            {/* Username */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                Username
               </label>
               <div className="mt-1 relative">
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
                   required
-                  value={formData.email}
+                  value={formData.username}
                   onChange={handleChange}
                   className="input-field pl-10"
-                  placeholder="Enter your email"
+                  placeholder="Enter your username"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-5 w-5 text-gray-400" />
+                  <FiUser className="h-5 w-5 text-gray-400" />
                 </div>
               </div>
             </div>
@@ -180,16 +197,6 @@ export default function Login() {
               </p>
             </div>
           </form>
-
-          {/* Demo credentials */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">Demo Credentials:</h3>
-            <div className="text-xs text-blue-700 space-y-1">
-              <div><strong>Admin:</strong> admin@test.com / admin123</div>
-              <div><strong>Customer:</strong> user@test.com / user123</div>
-              <div><strong>Teller:</strong> teller@test.com / teller123</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -27,27 +27,34 @@ public class DataSeeder {
                 customerRole.setName(Role.RoleName.CUSTOMER);
                 roleRepository.save(customerRole);
                 
-                System.out.println("✅ Default roles created!");
+                Role tellerRole = new Role();
+                tellerRole.setName(Role.RoleName.TELLER);
+                roleRepository.save(tellerRole);
+                
+                System.out.println("✅ Default roles created (ADMIN, CUSTOMER, TELLER)!");
             }
             
-            // Create default admin user
+            // Create initial admin user only (for production setup)
             if (userRepository.count() == 0) {
                 Role adminRole = roleRepository.findByName(Role.RoleName.ADMIN)
                     .orElseThrow(() -> new RuntimeException("Admin role not found"));
                 
+                // Create initial system admin
                 User admin = new User();
-                admin.setUsername("admin");
-                admin.setPassword(passwordEncoder.encode("admin123"));
-                admin.setEmail("admin@banking.com");
+                admin.setUsername("sysadmin");
+                admin.setPassword(passwordEncoder.encode("BankAdmin2025!"));
+                admin.setEmail("admin@bankingsystem.com");
                 admin.setFirstName("System");
                 admin.setLastName("Administrator");
                 admin.setEnabled(true);
                 admin.setRoles(Set.of(adminRole));
                 userRepository.save(admin);
                 
-                System.out.println("✅ Default admin user created!");
-                System.out.println("   Username: admin");
-                System.out.println("   Password: admin123");
+                System.out.println("✅ Initial system administrator created!");
+                System.out.println("   Username: sysadmin");
+                System.out.println("   Password: BankAdmin2025!");
+                System.out.println("   Email: admin@bankingsystem.com");
+                System.out.println("   NOTE: Additional admin/teller accounts must be created through admin panel.");
             }
         };
     }

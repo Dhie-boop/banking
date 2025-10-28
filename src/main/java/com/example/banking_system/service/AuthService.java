@@ -68,7 +68,7 @@ public class AuthService {
             throw UserAlreadyExistsException.email(registerRequest.getEmail());
         }
         
-        // Create new user
+        // Create new user - PUBLIC REGISTRATION ONLY ALLOWS CUSTOMER ROLE
         User user = new User();
         user.setUsername(registerRequest.getUsername());
         user.setEmail(registerRequest.getEmail());
@@ -78,11 +78,42 @@ public class AuthService {
         user.setPhoneNumber(registerRequest.getPhoneNumber());
         user.setEnabled(true);
         
-        // Set default role as CUSTOMER
+        // Force customer role for public registration - this is the only allowed role
         Role customerRole = roleRepository.findByName(Role.RoleName.CUSTOMER)
                 .orElseThrow(() -> new RuntimeException("Error: Customer role not found - please contact system administrator"));
         
         user.setRoles(Set.of(customerRole));
+        
+        return userRepository.save(user);
+    }
+    
+    // Admin-only method to create admin/teller users
+    public User createAdminUser(RegisterRequest registerRequest, Role.RoleName roleName) {
+        // Check if username exists
+        if (userRepository.existsByUsername(registerRequest.getUsername())) {
+            throw UserAlreadyExistsException.username(registerRequest.getUsername());
+        }
+        
+        // Check if email exists
+        if (userRepository.existsByEmail(registerRequest.getEmail())) {
+            throw UserAlreadyExistsException.email(registerRequest.getEmail());
+        }
+        
+        // Create admin/teller user
+        User user = new User();
+        user.setUsername(registerRequest.getUsername());
+        user.setEmail(registerRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setFirstName(registerRequest.getFirstName());
+        user.setLastName(registerRequest.getLastName());
+        user.setPhoneNumber(registerRequest.getPhoneNumber());
+        user.setEnabled(true);
+        
+        // Set specified role (ADMIN or TELLER)
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new RuntimeException("Error: Role " + roleName + " not found"));
+        
+        user.setRoles(Set.of(role));
         
         return userRepository.save(user);
     }

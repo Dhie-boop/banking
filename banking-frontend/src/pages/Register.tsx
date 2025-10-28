@@ -13,7 +13,8 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
-    fullName: '',
+    firstName: '',
+    lastName: '',
     phoneNumber: '',
   });
   const [loading, setLoading] = useState(false);
@@ -22,6 +23,11 @@ export default function Register() {
 
   // Redirect if already logged in
   useEffect(() => {
+    // Clear any invalid tokens from previous sessions
+    if (localStorage.getItem('token') && !authService.isAuthenticated()) {
+      authService.clearAuthData();
+    }
+    
     if (authService.isAuthenticated()) {
       const redirectPath = authService.getRedirectPath();
       navigate(redirectPath, { replace: true });
@@ -32,7 +38,7 @@ export default function Register() {
     e.preventDefault();
     
     // Validation
-    if (!formData.username || !formData.email || !formData.password) {
+    if (!formData.username || !formData.email || !formData.password || !formData.firstName || !formData.lastName) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -52,14 +58,16 @@ export default function Register() {
       const { confirmPassword, ...registerData } = formData;
       const response = await authAPI.register(registerData);
       
-      // Store auth data
-      authService.setAuthData(response.token, response.user);
+      toast.success(response.message || 'Account created successfully!');
       
-      toast.success('Account created successfully!');
-      
-      // Redirect to dashboard
-      const redirectPath = authService.getRedirectPath();
-      navigate(redirectPath, { replace: true });
+      // Redirect to login page after successful registration
+      navigate('/login', { 
+        replace: true,
+        state: { 
+          message: 'Registration successful! Please login with your credentials.',
+          username: formData.username 
+        }
+      });
     } catch (error: any) {
       console.error('Registration error:', error);
       const errorMessage = error.response?.data?.message || 'Registration failed';
@@ -84,11 +92,17 @@ export default function Register() {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Create your account
+          Open Customer Account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Join SecureBank and manage your finances with confidence
+          Join SecureBank and manage your finances with ease.
         </p>
+        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-xs text-blue-700 text-center">
+            <strong>Note:</strong> This registration creates a customer account only. 
+            Admin and teller accounts are created by existing administrators.
+          </p>
+        </div>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -117,21 +131,45 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Full Name */}
+            {/* First Name */}
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-                Full Name
+              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                First Name *
               </label>
               <div className="mt-1 relative">
                 <input
-                  id="fullName"
-                  name="fullName"
+                  id="firstName"
+                  name="firstName"
                   type="text"
-                  autoComplete="name"
-                  value={formData.fullName}
+                  autoComplete="given-name"
+                  required
+                  value={formData.firstName}
                   onChange={handleChange}
                   className="input-field pl-10"
-                  placeholder="Enter your full name"
+                  placeholder="Enter your first name"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiUser className="h-5 w-5 text-gray-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                Last Name *
+              </label>
+              <div className="mt-1 relative">
+                <input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  autoComplete="family-name"
+                  required
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  className="input-field pl-10"
+                  placeholder="Enter your last name"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FiUser className="h-5 w-5 text-gray-400" />

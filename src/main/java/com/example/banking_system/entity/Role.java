@@ -23,10 +23,9 @@ public class Role {
     @Enumerated(EnumType.STRING)
     private RoleName name;
     
-    @ManyToMany(mappedBy = "roles", fetch = FetchType.LAZY)
-    private Set<User> users;
+    // Removed bidirectional mapping to avoid lazy loading issues
     
     public enum RoleName {
-        ADMIN, CUSTOMER
+        ADMIN, CUSTOMER, TELLER
     }
 }

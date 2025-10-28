@@ -10,7 +10,7 @@ export interface User {
 }
 
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -18,13 +18,24 @@ export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
-  fullName?: string;
+  firstName: string;
+  lastName: string;
   phoneNumber?: string;
 }
 
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+// Backend JWT response format (what the API actually returns)
+export interface JwtResponse {
+  token: string;
+  type?: string;
+  id: string;
+  username: string;
+  email: string;
+  role: 'ADMIN' | 'CUSTOMER' | 'TELLER';
 }
 
 // Account types
@@ -88,7 +99,7 @@ export interface PaginatedResponse<T> {
 
 // Form types
 export interface LoginFormData {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -97,7 +108,8 @@ export interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  fullName: string;
+  firstName: string;
+  lastName: string;
   phoneNumber: string;
 }
 
