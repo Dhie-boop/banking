@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   FiActivity, 
   FiEye, 
@@ -205,60 +205,6 @@ export default function TransactionsManagement() {
     totalElements: 0,
     size: 20
   });
-
-  useEffect(() => {
-    loadTransactions();
-  }, [pagination.currentPage]);
-
-  useEffect(() => {
-    filterTransactions();
-  }, [transactions, searchTerm, typeFilter, statusFilter]);
-
-  const loadTransactions = async () => {
-    try {
-      setLoading(true);
-      const response = await transactionAPI.getAllTransactions(pagination.currentPage, pagination.size);
-      setTransactions(response.content);
-      setPagination(prev => ({
-        ...prev,
-        totalPages: response.totalPages,
-        totalElements: response.totalElements
-      }));
-    } catch (error) {
-      console.error('Error loading transactions:', error);
-      toast.error('Failed to load transactions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterTransactions = () => {
-    let filtered = transactions;
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(transaction =>
-        transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.fromAccount?.accountNumber.includes(searchTerm) ||
-        transaction.toAccount?.accountNumber.includes(searchTerm) ||
-        transaction.fromAccount?.user?.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.toAccount?.user?.username.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Apply type filter
-    if (typeFilter !== 'ALL') {
-      filtered = filtered.filter(transaction => transaction.type === typeFilter);
-    }
-
-    // Apply status filter
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter(transaction => transaction.status === statusFilter);
-    }
-
-    setFilteredTransactions(filtered);
-  };
 
   const handleViewTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);

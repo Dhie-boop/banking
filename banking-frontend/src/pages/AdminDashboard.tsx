@@ -39,16 +39,19 @@ function AdminOverview() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [usersData, accountsData, transactionsData, statsData] = await Promise.all([
-        userAPI.getAllUsers().catch(() => []),
+      const [usersResult, accountsData, transactionsResult, statsData] = await Promise.all([
+        userAPI.getAllUsers().catch(() => ({ content: [] })),
         accountAPI.getAllAccounts().catch(() => []),
         transactionAPI.getAllTransactions(0, 10).catch(() => ({ content: [] })),
         dashboardAPI.getAdminStats().catch(() => ({})),
       ]);
 
+      const usersData = Array.isArray(usersResult) ? usersResult : usersResult.content || [];
+      const transactionsData = Array.isArray(transactionsResult) ? transactionsResult : transactionsResult.content || [];
+
       setUsers(usersData);
       setAccounts(accountsData);
-      setTransactions(Array.isArray(transactionsData) ? transactionsData : transactionsData.content || []);
+      setTransactions(transactionsData);
       
       // Calculate stats if API doesn't provide them
       const totalBalance = accountsData.reduce((sum: number, account: Account) => sum + account.balance, 0);
@@ -56,7 +59,7 @@ function AdminOverview() {
         totalUsers: usersData.length,
         totalAccounts: accountsData.length,
         totalBalance,
-        recentTransactions: Array.isArray(transactionsData) ? transactionsData.length : transactionsData.content?.length || 0,
+        recentTransactions: transactionsData.length,
         ...statsData,
       });
     } catch (error) {

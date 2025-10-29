@@ -86,13 +86,13 @@ export const authAPI = {
 
 // User API calls
 export const userAPI = {
-  getAllUsers: async (): Promise<User[]> => {
-    const response = await api.get<User[]>('/users');
+  getAllUsers: async (): Promise<PaginatedResponse<User>> => {
+    const response = await api.get<PaginatedResponse<User>>('/admin/users');
     return response.data;
   },
 
   getUserById: async (id: string): Promise<User> => {
-    const response = await api.get<User>(`/users/${id}`);
+    const response = await api.get<User>(`/admin/users/${id}`);
     return response.data;
   },
 
@@ -105,8 +105,8 @@ export const userAPI = {
     await api.delete(`/users/${id}`);
   },
 
-  toggleUserStatus: async (id: string): Promise<User> => {
-    const response = await api.patch<User>(`/users/${id}/toggle-status`);
+  toggleUserStatus: async (id: string, enabled: boolean): Promise<{message: string}> => {
+    const response = await api.put<{message: string}>(`/admin/users/${id}/status`, { enabled });
     return response.data;
   },
 
@@ -114,12 +114,22 @@ export const userAPI = {
     const response = await api.post<User>('/users', data);
     return response.data;
   },
+
+  createAdminUser: async (data: RegisterRequest): Promise<{message: string}> => {
+    const response = await api.post<{message: string}>('/admin/create-admin', data);
+    return response.data;
+  },
+
+  createTellerUser: async (data: RegisterRequest): Promise<{message: string}> => {
+    const response = await api.post<{message: string}>('/admin/create-teller', data);
+    return response.data;
+  },
 };
 
 // Account API calls
 export const accountAPI = {
   getMyAccounts: async (): Promise<Account[]> => {
-    const response = await api.get<Account[]>('/accounts/my');
+    const response = await api.get<Account[]>('/accounts/my-accounts');
     return response.data;
   },
 
@@ -134,7 +144,7 @@ export const accountAPI = {
   },
 
   createAccount: async (data: CreateAccountRequest): Promise<Account> => {
-    const response = await api.post<Account>('/accounts', data);
+    const response = await api.post<Account>('/accounts/create', data);
     return response.data;
   },
 
@@ -151,7 +161,7 @@ export const transactionAPI = {
   },
 
   getAllTransactions: async (page = 0, size = 10): Promise<PaginatedResponse<Transaction>> => {
-    const response = await api.get<PaginatedResponse<Transaction>>(`/transactions?page=${page}&size=${size}`);
+    const response = await api.get<PaginatedResponse<Transaction>>(`/admin/transactions?page=${page}&size=${size}`);
     return response.data;
   },
 
@@ -160,23 +170,21 @@ export const transactionAPI = {
     return response.data;
   },
 
-  deposit: async (accountId: string, amount: number, description?: string): Promise<Transaction> => {
-    const data: TransactionRequest = {
-      type: 'DEPOSIT',
+  deposit: async (accountNumber: string, amount: number, description?: string): Promise<Transaction> => {
+    const data = {
+      accountNumber,
       amount,
-      description,
-      toAccountId: accountId,
+      description: description || 'Deposit',
     };
     const response = await api.post<Transaction>('/transactions/deposit', data);
     return response.data;
   },
 
-  withdraw: async (accountId: string, amount: number, description?: string): Promise<Transaction> => {
-    const data: TransactionRequest = {
-      type: 'WITHDRAWAL',
+  withdraw: async (accountNumber: string, amount: number, description?: string): Promise<Transaction> => {
+    const data = {
+      accountNumber,
       amount,
-      description,
-      fromAccountId: accountId,
+      description: description || 'Withdrawal',
     };
     const response = await api.post<Transaction>('/transactions/withdraw', data);
     return response.data;

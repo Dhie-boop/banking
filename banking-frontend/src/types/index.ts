@@ -4,11 +4,13 @@ export interface User {
   username: string;
   email: string;
   role: 'ADMIN' | 'CUSTOMER' | 'TELLER';
+  firstName?: string;
+  lastName?: string;
   fullName?: string;
   phoneNumber?: string;
   createdAt?: string;
-  active?: boolean;
-  status?: 'ACTIVE' | 'INACTIVE';
+  enabled?: boolean;
+  accountCount?: number;
 }
 
 export interface LoginRequest {
@@ -46,9 +48,11 @@ export interface Account {
   accountNumber: string;
   accountType: 'CHECKING' | 'SAVINGS';
   balance: number;
-  userId: string;
-  user?: User;
+  isActive?: boolean;
+  ownerName?: string;
   createdAt: string;
+  userId?: string;
+  user?: User;
 }
 
 export interface CreateAccountRequest {
@@ -57,16 +61,18 @@ export interface CreateAccountRequest {
 
 // Transaction types
 export interface Transaction {
+  createdAt: string | number | Date;
   id: string;
   type: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER';
   amount: number;
   description?: string;
-  fromAccountId?: string;
-  toAccountId?: string;
+  sourceAccountNumber?: string;
+  targetAccountNumber?: string;
+  referenceNumber?: string;
+  timestamp: string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
   fromAccount?: Account;
   toAccount?: Account;
-  createdAt: string;
-  status: 'PENDING' | 'COMPLETED' | 'FAILED';
 }
 
 export interface TransactionRequest {
@@ -78,8 +84,8 @@ export interface TransactionRequest {
 }
 
 export interface TransferRequest {
-  fromAccountId: string;
-  toAccountId: string;
+  sourceAccountNumber: string;
+  targetAccountNumber: string;
   amount: number;
   description?: string;
 }

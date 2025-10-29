@@ -260,7 +260,8 @@ export default function UsersManagement() {
     try {
       setLoading(true);
       const data = await userAPI.getAllUsers();
-      setUsers(data);
+      // Handle paginated response
+      setUsers(Array.isArray(data) ? data : data.content || []);
     } catch (error) {
       console.error('Error loading users:', error);
       toast.error('Failed to load users');
@@ -341,7 +342,9 @@ export default function UsersManagement() {
 
   const handleToggleStatus = async (user: User) => {
     try {
-      await userAPI.toggleUserStatus(user.id);
+      // Toggle the current status
+      const newStatus = !user.enabled;
+      await userAPI.toggleUserStatus(user.id, newStatus);
       toast.success('User status updated successfully');
       await loadUsers();
     } catch (error) {

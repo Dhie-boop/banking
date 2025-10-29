@@ -43,7 +43,7 @@ export default function TellerDashboard() {
     setLoading(true);
     try {
       const [customersData, transactionsData, statsData] = await Promise.all([
-        userAPI.getAllUsers().then(users => users.filter(u => u.role === 'CUSTOMER')).catch(() => []),
+        userAPI.getAllUsers().then(result => result.content.filter(u => u.role === 'CUSTOMER')).catch(() => []),
         transactionAPI.getAllTransactions(0, 20).catch(() => ({ content: [] })),
         dashboardAPI.getTellerStats().catch(() => ({})),
       ]);

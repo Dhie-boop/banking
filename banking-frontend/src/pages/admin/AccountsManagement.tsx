@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   FiCreditCard, 
   FiPlus, 
@@ -36,8 +36,9 @@ function AccountModal({ isOpen, onClose, onSave }: AccountModalProps) {
   const loadUsers = async () => {
     try {
       const userData = await userAPI.getAllUsers();
-      // Filter to only show customers for account creation
-      setUsers(userData.filter(user => user.role === 'CUSTOMER'));
+      // Handle paginated response and filter to only show customers for account creation
+      const users = Array.isArray(userData) ? userData : userData.content || [];
+      setUsers(users.filter(user => user.role === 'CUSTOMER'));
     } catch (error) {
       console.error('Error loading users:', error);
       toast.error('Failed to load users');
@@ -247,24 +248,7 @@ export default function AccountsManagement() {
     loadAccounts();
   }, []);
 
-  useEffect(() => {
-    filterAccounts();
-  }, [accounts, searchTerm, typeFilter]);
-
-  const loadAccounts = async () => {
-    try {
-      setLoading(true);
-      const data = await accountAPI.getAllAccounts();
-      setAccounts(data);
-    } catch (error) {
-      console.error('Error loading accounts:', error);
-      toast.error('Failed to load accounts');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterAccounts = () => {
+  const filterAccounts = useCallback(() => {
     let filtered = accounts;
 
     // Apply search filter
@@ -282,6 +266,23 @@ export default function AccountsManagement() {
     }
 
     setFilteredAccounts(filtered);
+  }, [accounts, searchTerm, typeFilter]);
+
+  useEffect(() => {
+    filterAccounts();
+  }, [filterAccounts]);
+
+  const loadAccounts = async () => {
+    try {
+      setLoading(true);
+      const data = await accountAPI.getAllAccounts();
+      setAccounts(data);
+    } catch (error) {
+      console.error('Error loading accounts:', error);
+      toast.error('Failed to load accounts');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateAccount = () => {
@@ -395,7 +396,7 @@ export default function AccountsManagement() {
             <FiUser className="h-8 w-8 text-purple-600" />
             <div className="ml-3">
               <p className="text-2xl font-bold text-gray-900">
-                {new Set(filteredAccounts.map(a => a.userId)).size}
+                {new Set(filteredAccounts.filter(a => a.userId).map(a => a.userId)).size}
               </p>
               <p className="text-gray-500">Account Holders</p>
             </div>
