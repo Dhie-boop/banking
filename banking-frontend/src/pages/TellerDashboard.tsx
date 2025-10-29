@@ -13,6 +13,7 @@ import {
 import { userAPI, transactionAPI, dashboardAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import type { User, Transaction } from '../types';
+import { normalizeListResponse, normalizeObjectResponse, normalizeTransactionsResponse } from '../utils/apiUtils';
 
 export default function TellerDashboard() {
   const [stats, setStats] = useState({
@@ -41,34 +42,75 @@ export default function TellerDashboard() {
 
   const loadDashboardData = async () => {
     setLoading(true);
+    const failedSections: string[] = [];
+
     try {
-      const [customersData, transactionsData, statsData] = await Promise.all([
-        userAPI.getAllUsers().then(result => result.content.filter(u => u.role === 'CUSTOMER')).catch(() => []),
-        transactionAPI.getAllTransactions(0, 20).catch(() => ({ content: [] })),
-        dashboardAPI.getTellerStats().catch(() => ({})),
+      const [customersResult, transactionsResult, statsResult] = await Promise.allSettled([
+        userAPI.getAllUsers(),
+        transactionAPI.getAllTransactions(0, 20),
+        dashboardAPI.getTellerStats(),
       ]);
 
+      if (customersResult.status === 'rejected') {
+        console.error('Error loading users:', customersResult.reason);
+        failedSections.push('users');
+      }
+      if (transactionsResult.status === 'rejected') {
+        console.error('Error loading transactions:', transactionsResult.reason);
+        failedSections.push('transactions');
+      }
+      if (statsResult.status === 'rejected') {
+        console.error('Error loading stats:', statsResult.reason);
+        failedSections.push('stats');
+      }
+
+      const allUsers = normalizeListResponse<User>(
+        customersResult.status === 'fulfilled' ? customersResult.value : []
+      );
+      const transactionsData = normalizeTransactionsResponse(
+        transactionsResult.status === 'fulfilled' ? transactionsResult.value : []
+      );
+      const statsData = normalizeObjectResponse<Partial<typeof stats>>(
+        statsResult.status === 'fulfilled' ? statsResult.value : {}
+      );
+
+      const customersData = allUsers.filter((u: User) => u.role === 'CUSTOMER');
+
+      console.log('TellerDashboard - Processed customers:', customersData);
+      console.log('TellerDashboard - Processed transactions:', transactionsData);
+      console.log('TellerDashboard - Processed stats:', statsData);
+
       setCustomers(customersData);
-      setTransactions(Array.isArray(transactionsData) ? transactionsData : transactionsData.content || []);
-      
-      // Calculate stats
+      setTransactions(transactionsData);
+
       const today = new Date().toDateString();
-      const todayTransactions = Array.isArray(transactionsData) 
-        ? transactionsData.filter(t => new Date(t.createdAt).toDateString() === today)
-        : (transactionsData.content || []).filter((t: Transaction) => new Date(t.createdAt).toDateString() === today);
-      
-      setStats({
-        totalCustomers: customersData.length,
-        todayTransactions: todayTransactions.length,
-        todayDeposits: todayTransactions.filter((t: Transaction) => t.type === 'DEPOSIT').length,
-        todayWithdrawals: todayTransactions.filter((t: Transaction) => t.type === 'WITHDRAWAL').length,
-        ...statsData,
-      });
+      const todayTransactions = transactionsData.filter((t: Transaction) =>
+        new Date(t.createdAt).toDateString() === today
+      );
+
+      const tellerStats = {
+        totalCustomers: statsData.totalCustomers ?? customersData.length,
+        todayTransactions: statsData.todayTransactions ?? todayTransactions.length,
+        todayDeposits:
+          statsData.todayDeposits ?? todayTransactions.filter((t) => t.type === 'DEPOSIT').length,
+        todayWithdrawals:
+          statsData.todayWithdrawals ?? todayTransactions.filter((t) => t.type === 'WITHDRAWAL').length,
+      };
+
+      setStats(tellerStats);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+      failedSections.push('dashboard');
     } finally {
       setLoading(false);
+
+      if (failedSections.length > 0) {
+        const hasCriticalError = failedSections.includes('dashboard') || failedSections.length === 3;
+        const message = hasCriticalError
+          ? 'Failed to load dashboard data'
+          : `Partial data loaded. Issues with: ${failedSections.join(', ')}`;
+        (hasCriticalError ? toast.error : toast.warn)(message);
+      }
     }
   };
 

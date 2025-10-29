@@ -12,6 +12,7 @@ import {
 import { transactionAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import type { Transaction } from '../../types';
+import { normalizeTransactionsResponse } from '../../utils/apiUtils';
 
 interface TransactionDetailsModalProps {
   isOpen: boolean;
@@ -206,6 +207,69 @@ export default function TransactionsManagement() {
     size: 20
   });
 
+  const loadTransactions = useCallback(async (page: number) => {
+    setLoading(true);
+    try {
+      const response = await transactionAPI.getAllTransactions(page, pagination.size);
+      const normalized = normalizeTransactionsResponse(response);
+
+      setTransactions(normalized);
+      setFilteredTransactions(normalized);
+
+      if (response && typeof response === 'object') {
+        const paginated = response as Partial<{ totalPages: number; totalElements: number }>;
+        setPagination(prev => ({
+          ...prev,
+          currentPage: page,
+          totalPages: paginated.totalPages ?? prev.totalPages,
+          totalElements: paginated.totalElements ?? normalized.length,
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading transactions:', error);
+      toast.error('Failed to load transactions');
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination.size]);
+
+  useEffect(() => {
+    loadTransactions(pagination.currentPage);
+  }, [loadTransactions, pagination.currentPage]);
+
+  const applyFilters = useCallback(() => {
+    let filtered = [...transactions];
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((transaction) => {
+        const sourceNumber = transaction.sourceAccountNumber ?? transaction.fromAccount?.accountNumber;
+        const targetNumber = transaction.targetAccountNumber ?? transaction.toAccount?.accountNumber;
+
+        return (
+          transaction.id.toLowerCase().includes(term) ||
+          transaction.description?.toLowerCase().includes(term) ||
+          sourceNumber?.toLowerCase().includes(term) ||
+          targetNumber?.toLowerCase().includes(term)
+        );
+      });
+    }
+
+    if (typeFilter !== 'ALL') {
+      filtered = filtered.filter(transaction => transaction.type === typeFilter);
+    }
+
+    if (statusFilter !== 'ALL') {
+      filtered = filtered.filter(transaction => transaction.status === statusFilter);
+    }
+
+    setFilteredTransactions(filtered);
+  }, [transactions, searchTerm, typeFilter, statusFilter]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
   const handleViewTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
     setShowDetailsModal(true);
@@ -266,7 +330,7 @@ export default function TransactionsManagement() {
           <h1 className="text-2xl font-bold text-gray-900">Transactions Management</h1>
         </div>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => loadTransactions(pagination.currentPage)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
         >
           <FiRefreshCw className="h-4 w-4" />

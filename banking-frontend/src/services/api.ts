@@ -8,7 +8,6 @@ import type {
   Account,
   CreateAccountRequest,
   Transaction,
-  TransactionRequest,
   TransferRequest,
   PaginatedResponse
 } from '../types';

@@ -3,6 +3,7 @@ import type { Account } from '../types';
 import { FiX } from 'react-icons/fi';
 import { transactionAPI, accountAPI } from '../services/api';
 import { toast } from 'react-toastify';
+import { normalizeAccountsResponse } from '../utils/apiUtils';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -35,8 +36,8 @@ export default function TransferModal({
 
   const loadAccounts = async () => {
     try {
-      const data = await accountAPI.getMyAccounts();
-      setAccounts(data);
+  const data = await accountAPI.getMyAccounts();
+  setAccounts(normalizeAccountsResponse(data));
     } catch (error) {
       console.error('Error loading accounts:', error);
       toast.error('Failed to load accounts');
@@ -61,11 +62,19 @@ export default function TransferModal({
       return;
     }
 
+    const fromAccount = accounts.find(account => account.id === formData.fromAccountId);
+    const toAccount = accounts.find(account => account.id === formData.toAccountId);
+
+    if (!fromAccount || !toAccount) {
+      toast.error('Selected accounts could not be found');
+      return;
+    }
+
     setLoading(true);
     try {
       await transactionAPI.transfer({
-        fromAccountId: formData.fromAccountId,
-        toAccountId: formData.toAccountId,
+        sourceAccountNumber: fromAccount.accountNumber,
+        targetAccountNumber: toAccount.accountNumber,
         amount: parseFloat(formData.amount),
         description: formData.description,
       });

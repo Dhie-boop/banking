@@ -15,6 +15,7 @@ import {
 import { accountAPI, transactionAPI, dashboardAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import type { Account, Transaction, DashboardStats } from '../types';
+import { normalizeObjectResponse, normalizeTransactionsResponse, normalizeAccountsResponse } from '../utils/apiUtils';
 
 export default function CustomerDashboard() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -31,21 +32,70 @@ export default function CustomerDashboard() {
 
   const loadDashboardData = async () => {
     setLoading(true);
+    const failedSections: string[] = [];
+
     try {
-      const [accountsData, transactionsData, statsData] = await Promise.all([
+      const [accountsResult, transactionsResult, statsResult] = await Promise.allSettled([
         accountAPI.getMyAccounts(),
         transactionAPI.getMyTransactions(0, 5),
-        dashboardAPI.getCustomerStats().catch(() => ({})),
+        dashboardAPI.getCustomerStats(),
       ]);
 
-      setAccounts(accountsData);
-      setTransactions(transactionsData.content || transactionsData);
-      setStats(statsData);
+      if (accountsResult.status === 'rejected') {
+        console.error('Error loading accounts:', accountsResult.reason);
+        failedSections.push('accounts');
+      }
+      if (transactionsResult.status === 'rejected') {
+        console.error('Error loading transactions:', transactionsResult.reason);
+        failedSections.push('transactions');
+      }
+      if (statsResult.status === 'rejected') {
+        console.error('Error loading stats:', statsResult.reason);
+        failedSections.push('stats');
+      }
+
+      const accountsData = normalizeAccountsResponse(
+        accountsResult.status === 'fulfilled' ? accountsResult.value : []
+      );
+      const transactionsData = normalizeTransactionsResponse(
+        transactionsResult.status === 'fulfilled' ? transactionsResult.value : []
+      );
+      const statsData = normalizeObjectResponse<DashboardStats>(
+        statsResult.status === 'fulfilled' ? statsResult.value : {}
+      );
+
+      console.log('CustomerDashboard - Processed accounts:', accountsData);
+      console.log('CustomerDashboard - Processed transactions:', transactionsData);
+      console.log('CustomerDashboard - Processed stats:', statsData);
+
+      const computedTotalBalance = accountsData.reduce(
+        (sum, account) => sum + (account.balance || 0),
+        0
+      );
+
+  setAccounts(accountsData);
+      setTransactions(transactionsData);
+
+      const enrichedStats: DashboardStats = {
+        totalAccounts: statsData.totalAccounts ?? accountsData.length,
+        totalBalance: statsData.totalBalance ?? computedTotalBalance,
+        totalCustomers: statsData.totalCustomers,
+        recentTransactions: statsData.recentTransactions ?? transactionsData.length,
+      };
+      setStats(enrichedStats);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+      failedSections.push('dashboard');
     } finally {
       setLoading(false);
+
+      if (failedSections.length > 0) {
+        const hasCriticalError = failedSections.includes('dashboard') || failedSections.length === 3;
+        const message = hasCriticalError
+          ? 'Failed to load dashboard data'
+          : `Partial data loaded. Issues with: ${failedSections.join(', ')}`;
+        (hasCriticalError ? toast.error : toast.warn)(message);
+      }
     }
   };
 

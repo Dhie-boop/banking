@@ -13,6 +13,7 @@ import {
 import { userAPI, accountAPI, transactionAPI, dashboardAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import type { User, Account, Transaction } from '../types';
+import { normalizeListResponse, normalizeObjectResponse, normalizeTransactionsResponse, normalizeAccountsResponse } from '../utils/apiUtils';
 
 // Import the new admin pages
 import UsersManagement from './admin/UsersManagement';
@@ -38,35 +39,83 @@ function AdminOverview() {
 
   const loadDashboardData = async () => {
     setLoading(true);
+    const failedSections: string[] = [];
+
     try {
-      const [usersResult, accountsData, transactionsResult, statsData] = await Promise.all([
-        userAPI.getAllUsers().catch(() => ({ content: [] })),
-        accountAPI.getAllAccounts().catch(() => []),
-        transactionAPI.getAllTransactions(0, 10).catch(() => ({ content: [] })),
-        dashboardAPI.getAdminStats().catch(() => ({})),
+      const [usersResult, accountsResult, transactionsResult, statsResult] = await Promise.allSettled([
+        userAPI.getAllUsers(),
+        accountAPI.getAllAccounts(),
+        transactionAPI.getAllTransactions(0, 10),
+        dashboardAPI.getAdminStats(),
       ]);
 
-      const usersData = Array.isArray(usersResult) ? usersResult : usersResult.content || [];
-      const transactionsData = Array.isArray(transactionsResult) ? transactionsResult : transactionsResult.content || [];
+      if (usersResult.status === 'rejected') {
+        console.error('Error loading users:', usersResult.reason);
+        failedSections.push('users');
+      }
+      if (accountsResult.status === 'rejected') {
+        console.error('Error loading accounts:', accountsResult.reason);
+        failedSections.push('accounts');
+      }
+      if (transactionsResult.status === 'rejected') {
+        console.error('Error loading transactions:', transactionsResult.reason);
+        failedSections.push('transactions');
+      }
+      if (statsResult.status === 'rejected') {
+        console.error('Error loading stats:', statsResult.reason);
+        failedSections.push('stats');
+      }
+
+      const usersData = normalizeListResponse<User>(
+        usersResult.status === 'fulfilled' ? usersResult.value : []
+      );
+      const accountsArray = normalizeAccountsResponse(
+        accountsResult.status === 'fulfilled' ? accountsResult.value : []
+      );
+      const transactionsData = normalizeTransactionsResponse(
+        transactionsResult.status === 'fulfilled' ? transactionsResult.value : []
+      );
+      const statsData = normalizeObjectResponse<Partial<typeof stats>>(
+        statsResult.status === 'fulfilled' ? statsResult.value : {}
+      );
+
+      console.log('AdminDashboard - Processed users:', usersData);
+      console.log('AdminDashboard - Processed accounts:', accountsArray);
+      console.log('AdminDashboard - Processed transactions:', transactionsData);
+      console.log('AdminDashboard - Processed stats:', statsData);
 
       setUsers(usersData);
-      setAccounts(accountsData);
+      setAccounts(accountsArray);
       setTransactions(transactionsData);
-      
-      // Calculate stats if API doesn't provide them
-      const totalBalance = accountsData.reduce((sum: number, account: Account) => sum + account.balance, 0);
-      setStats({
+
+      const totalBalance = accountsArray.reduce((sum: number, account: Account) => sum + (account.balance || 0), 0);
+      const mergedStats: typeof stats = {
         totalUsers: usersData.length,
-        totalAccounts: accountsData.length,
+        totalAccounts: accountsArray.length,
         totalBalance,
         recentTransactions: transactionsData.length,
-        ...statsData,
+      };
+
+      Object.entries(statsData).forEach(([key, value]) => {
+        if (typeof value === 'number' && key in mergedStats) {
+          mergedStats[key as keyof typeof mergedStats] = value;
+        }
       });
+
+      setStats(mergedStats);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+      failedSections.push('dashboard');
     } finally {
       setLoading(false);
+
+      if (failedSections.length > 0) {
+        const hasCriticalError = failedSections.includes('dashboard') || failedSections.length === 4;
+        const message = hasCriticalError
+          ? 'Failed to load dashboard data'
+          : `Partial data loaded. Issues with: ${failedSections.join(', ')}`;
+        (hasCriticalError ? toast.error : toast.warn)(message);
+      }
     }
   };
 

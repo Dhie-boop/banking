@@ -94,7 +94,13 @@ export default function TransactionTable({ transactions, loading = false }: Tran
           {transactions.map((transaction) => (
             <tr key={transaction.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {format(new Date(transaction.createdAt), 'MMM dd, yyyy HH:mm')}
+                {(() => {
+                  const dateValue = transaction.createdAt || transaction.timestamp;
+                  const parsed = dateValue ? new Date(dateValue) : null;
+                  return parsed && !isNaN(parsed.getTime())
+                    ? format(parsed, 'MMM dd, yyyy HH:mm')
+                    : 'N/A';
+                })()}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTransactionTypeColor(transaction.type)}`}>
@@ -115,7 +121,11 @@ export default function TransactionTable({ transactions, loading = false }: Tran
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {transaction.fromAccount?.accountNumber || transaction.toAccount?.accountNumber || '-'}
+                {transaction.fromAccount?.accountNumber
+                  || transaction.sourceAccountNumber
+                  || transaction.toAccount?.accountNumber
+                  || transaction.targetAccountNumber
+                  || '-'}
               </td>
             </tr>
           ))}
