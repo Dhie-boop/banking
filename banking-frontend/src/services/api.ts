@@ -104,6 +104,16 @@ export const userAPI = {
   deleteUser: async (id: string): Promise<void> => {
     await api.delete(`/users/${id}`);
   },
+
+  toggleUserStatus: async (id: string): Promise<User> => {
+    const response = await api.patch<User>(`/users/${id}/toggle-status`);
+    return response.data;
+  },
+
+  createUser: async (data: RegisterRequest): Promise<User> => {
+    const response = await api.post<User>('/users', data);
+    return response.data;
+  },
 };
 
 // Account API calls

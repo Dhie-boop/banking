@@ -116,6 +116,19 @@ public class AccountController {
         }
     }
     
+    @GetMapping
+    @Operation(summary = "Get all accounts", description = "Get all accounts in the system (admin and teller only)")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TELLER')")
+    public ResponseEntity<?> getAllAccounts() {
+        try {
+            List<AccountResponse> accounts = accountService.getAllAccounts();
+            return ResponseEntity.ok(accounts);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse(e.getMessage()));
+        }
+    }
+    
     @PutMapping("/{id}/deactivate")
     @Operation(summary = "Deactivate account", description = "Deactivate an account (only if balance is zero)")
     @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")

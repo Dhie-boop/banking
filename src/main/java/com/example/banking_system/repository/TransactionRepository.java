@@ -39,4 +39,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     
     List<Transaction> findByTimestampBetweenOrderByTimestampDesc(
             LocalDateTime startDate, LocalDateTime endDate);
+    
+    // Dashboard specific queries
+    List<Transaction> findByTimestampAfter(LocalDateTime timestamp);
+    
+    @Query("SELECT t FROM Transaction t WHERE " +
+           "(t.sourceAccount IN :accounts OR t.targetAccount IN :accounts) " +
+           "AND t.timestamp > :timestamp " +
+           "ORDER BY t.timestamp DESC")
+    List<Transaction> findByUserAccountsAndTimestampAfter(
+            @Param("accounts") List<Account> accounts,
+            @Param("timestamp") LocalDateTime timestamp);
 }

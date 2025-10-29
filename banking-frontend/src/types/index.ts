@@ -7,6 +7,8 @@ export interface User {
   fullName?: string;
   phoneNumber?: string;
   createdAt?: string;
+  active?: boolean;
+  status?: 'ACTIVE' | 'INACTIVE';
 }
 
 export interface LoginRequest {

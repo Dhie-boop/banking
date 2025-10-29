@@ -114,6 +114,14 @@ public class AccountService {
                 .orElseThrow(() -> new RuntimeException("Account not found with number: " + accountNumber));
     }
     
+    public List<AccountResponse> getAllAccounts() {
+        // Admin and teller can see all accounts
+        List<Account> accounts = accountRepository.findAll();
+        return accounts.stream()
+                .map(AccountResponse::new)
+                .collect(Collectors.toList());
+    }
+    
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
