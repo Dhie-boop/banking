@@ -12,6 +12,7 @@ import {
 import { accountAPI, userAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import type { Account, User, CreateAccountRequest } from '../../types';
+import { normalizeAccountsResponse } from '../../utils/apiUtils';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -121,6 +122,10 @@ interface AccountDetailsModalProps {
 function AccountDetailsModal({ isOpen, onClose, account }: AccountDetailsModalProps) {
   if (!isOpen || !account) return null;
 
+  const accountHolderName = account.user?.username || account.ownerName || 'Unknown User';
+  const accountHolderEmail = account.user?.email || account.user?.username || undefined;
+  const initials = accountHolderName.charAt(0).toUpperCase();
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-lg">
@@ -155,16 +160,18 @@ function AccountDetailsModal({ isOpen, onClose, account }: AccountDetailsModalPr
             </p>
           </div>
 
-          {account.user && (
+          {(account.user || account.ownerName) && (
             <div>
               <label className="block text-sm font-medium text-gray-700">Account Holder</label>
               <div className="mt-1 flex items-center space-x-3">
                 <div className="w-8 h-8 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-sm font-medium">
-                  {account.user.username.charAt(0).toUpperCase()}
+                  {initials}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{account.user.username}</p>
-                  <p className="text-sm text-gray-500">{account.user.email}</p>
+                  <p className="text-sm font-medium text-gray-900">{accountHolderName}</p>
+                  {accountHolderEmail && (
+                    <p className="text-sm text-gray-500">{accountHolderEmail}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -253,11 +260,19 @@ export default function AccountsManagement() {
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(account =>
-        account.accountNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        account.user?.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        account.user?.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      const lowered = searchTerm.toLowerCase();
+      filtered = filtered.filter(account => {
+        const username = account.user?.username?.toLowerCase();
+        const email = account.user?.email?.toLowerCase();
+        const owner = account.ownerName?.toLowerCase();
+
+        return (
+          account.accountNumber.toLowerCase().includes(lowered) ||
+          (username?.includes(lowered) ?? false) ||
+          (email?.includes(lowered) ?? false) ||
+          (owner?.includes(lowered) ?? false)
+        );
+      });
     }
 
     // Apply type filter
@@ -276,7 +291,8 @@ export default function AccountsManagement() {
     try {
       setLoading(true);
       const data = await accountAPI.getAllAccounts();
-      setAccounts(data);
+      const normalized = normalizeAccountsResponse(data);
+      setAccounts(normalized);
     } catch (error) {
       console.error('Error loading accounts:', error);
       toast.error('Failed to load accounts');
@@ -478,11 +494,13 @@ export default function AccountsManagement() {
                     {account.user ? (
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-sm font-medium">
-                          {account.user.username.charAt(0).toUpperCase()}
+                          {(account.user?.username || account.ownerName || '?').charAt(0).toUpperCase()}
                         </div>
                         <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">{account.user.username}</div>
-                          <div className="text-sm text-gray-500">{account.user.email}</div>
+                          <div className="text-sm font-medium text-gray-900">{account.user?.username || account.ownerName || 'Unknown User'}</div>
+                          {(account.user?.email || account.user?.username) && (
+                            <div className="text-sm text-gray-500">{account.user?.email || account.user?.username}</div>
+                          )}
                         </div>
                       </div>
                     ) : (
