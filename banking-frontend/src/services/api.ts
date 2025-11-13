@@ -90,6 +90,11 @@ export const userAPI = {
     return response.data;
   },
 
+  getCustomers: async (): Promise<User[]> => {
+    const response = await api.get<User[]>('/users/customers');
+    return response.data;
+  },
+
   getUserById: async (id: string): Promise<User> => {
     const response = await api.get<User>(`/admin/users/${id}`);
     return response.data;
@@ -110,7 +115,7 @@ export const userAPI = {
   },
 
   createUser: async (data: RegisterRequest): Promise<User> => {
-    const response = await api.post<User>('/users', data);
+    const response = await api.post<User>('/admin/users', data);
     return response.data;
   },
 
@@ -147,6 +152,11 @@ export const accountAPI = {
     return response.data;
   },
 
+  deactivateAccount: async (id: string): Promise<Account> => {
+    const response = await api.put<Account>(`/accounts/${id}/deactivate`, {});
+    return response.data;
+  },
+
   deleteAccount: async (id: string): Promise<void> => {
     await api.delete(`/accounts/${id}`);
   },
@@ -155,12 +165,24 @@ export const accountAPI = {
 // Transaction API calls
 export const transactionAPI = {
   getMyTransactions: async (page = 0, size = 10): Promise<PaginatedResponse<Transaction>> => {
-    const response = await api.get<PaginatedResponse<Transaction>>(`/transactions/my?page=${page}&size=${size}`);
+    const response = await api.get<PaginatedResponse<Transaction>>(`/transactions/my-transactions?page=${page}&size=${size}`);
     return response.data;
   },
 
   getAllTransactions: async (page = 0, size = 10): Promise<PaginatedResponse<Transaction>> => {
     const response = await api.get<PaginatedResponse<Transaction>>(`/admin/transactions?page=${page}&size=${size}`);
+    return response.data;
+  },
+
+  getStaffTransactions: async (
+    page = 0,
+    size = 10,
+    sortBy = 'timestamp',
+    sortDir: 'asc' | 'desc' = 'desc'
+  ): Promise<PaginatedResponse<Transaction>> => {
+    const response = await api.get<PaginatedResponse<Transaction>>(
+      `/transactions?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`
+    );
     return response.data;
   },
 

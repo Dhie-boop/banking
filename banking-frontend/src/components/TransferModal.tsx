@@ -4,6 +4,7 @@ import { FiX } from 'react-icons/fi';
 import { transactionAPI, accountAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import { normalizeAccountsResponse } from '../utils/apiUtils';
+import { formatCurrency } from '../utils/currency';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ export default function TransferModal({
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fromAccountId: fromAccountId || '',
-    toAccountId: '',
+    toAccountNumber: '',
     amount: '',
     description: '',
   });
@@ -36,8 +37,8 @@ export default function TransferModal({
 
   const loadAccounts = async () => {
     try {
-  const data = await accountAPI.getMyAccounts();
-  setAccounts(normalizeAccountsResponse(data));
+      const data = await accountAPI.getMyAccounts();
+      setAccounts(normalizeAccountsResponse(data));
     } catch (error) {
       console.error('Error loading accounts:', error);
       toast.error('Failed to load accounts');
@@ -47,13 +48,8 @@ export default function TransferModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fromAccountId || !formData.toAccountId || !formData.amount) {
+    if (!formData.fromAccountId || !formData.amount) {
       toast.error('Please fill in all required fields');
-      return;
-    }
-
-    if (formData.fromAccountId === formData.toAccountId) {
-      toast.error('Cannot transfer to the same account');
       return;
     }
 
@@ -63,10 +59,19 @@ export default function TransferModal({
     }
 
     const fromAccount = accounts.find(account => account.id === formData.fromAccountId);
-    const toAccount = accounts.find(account => account.id === formData.toAccountId);
+    if (!fromAccount) {
+      toast.error('Selected account could not be found');
+      return;
+    }
 
-    if (!fromAccount || !toAccount) {
-      toast.error('Selected accounts could not be found');
+    const targetNumber = formData.toAccountNumber.trim();
+    if (!targetNumber) {
+      toast.error('Enter a recipient account number');
+      return;
+    }
+
+    if (fromAccount.accountNumber === targetNumber) {
+      toast.error('Cannot transfer to the same account');
       return;
     }
 
@@ -74,7 +79,7 @@ export default function TransferModal({
     try {
       await transactionAPI.transfer({
         sourceAccountNumber: fromAccount.accountNumber,
-        targetAccountNumber: toAccount.accountNumber,
+        targetAccountNumber: targetNumber,
         amount: parseFloat(formData.amount),
         description: formData.description,
       });
@@ -94,7 +99,7 @@ export default function TransferModal({
   const handleClose = () => {
     setFormData({
       fromAccountId: '',
-      toAccountId: '',
+      toAccountNumber: '',
       amount: '',
       description: '',
     });
@@ -133,7 +138,7 @@ export default function TransferModal({
               <option value="">Select account</option>
               {accounts.map((account) => (
                 <option key={account.id} value={account.id}>
-                  {account.accountNumber} - {account.accountType} (${account.balance.toFixed(2)})
+                  {account.accountNumber} - {account.accountType} ({formatCurrency(account.balance)})
                 </option>
               ))}
             </select>
@@ -144,21 +149,32 @@ export default function TransferModal({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               To Account *
             </label>
-            <select
-              value={formData.toAccountId}
-              onChange={(e) => setFormData(prev => ({ ...prev, toAccountId: e.target.value }))}
+            <input
+              value={formData.toAccountNumber}
+              onChange={(e) => setFormData(prev => ({ ...prev, toAccountNumber: e.target.value }))}
               className="input-field"
+              placeholder="Recipient account number"
               required
-            >
-              <option value="">Select account</option>
-              {accounts
-                .filter(account => account.id !== formData.fromAccountId)
-                .map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.accountNumber} - {account.accountType}
-                  </option>
-                ))}
-            </select>
+            />
+            {accounts.filter(account => account.id !== formData.fromAccountId).length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs text-gray-500 mb-1">Quick fill from your other accounts:</p>
+                <div className="flex flex-wrap gap-2">
+                  {accounts
+                    .filter(account => account.id !== formData.fromAccountId)
+                    .map((account) => (
+                      <button
+                        key={account.id}
+                        type="button"
+                        className="px-2 py-1 text-xs rounded-full border border-blue-200 text-blue-700 hover:bg-blue-50"
+                        onClick={() => setFormData(prev => ({ ...prev, toAccountNumber: account.accountNumber }))}
+                      >
+                        {account.accountNumber}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Amount */}

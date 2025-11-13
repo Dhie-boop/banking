@@ -36,7 +36,7 @@ public class TransactionController {
     
     @PostMapping("/deposit")
     @Operation(summary = "Deposit money", description = "Deposit money to an account")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN') or hasRole('TELLER')")
     public ResponseEntity<?> deposit(@Valid @RequestBody DepositRequest request) {
         try {
             TransactionResponse transaction = transactionService.deposit(request);
@@ -49,7 +49,7 @@ public class TransactionController {
     
     @PostMapping("/withdraw")
     @Operation(summary = "Withdraw money", description = "Withdraw money from an account")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN') or hasRole('TELLER')")
     public ResponseEntity<?> withdraw(@Valid @RequestBody WithdrawRequest request) {
         try {
             TransactionResponse transaction = transactionService.withdraw(request);
@@ -119,5 +119,22 @@ public class TransactionController {
             return ResponseEntity.badRequest()
                     .body(new MessageResponse(e.getMessage()));
         }
+    }
+
+    @GetMapping
+    @Operation(summary = "Get transactions", description = "Get paginated transactions for teller and admin dashboards")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('TELLER')")
+    public ResponseEntity<Page<TransactionResponse>> getAllTransactions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "timestamp") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("desc") ?
+            Sort.by(sortBy).descending() :
+            Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<TransactionResponse> transactions = transactionService.getAllTransactions(pageable);
+        return ResponseEntity.ok(transactions);
     }
 }

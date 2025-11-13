@@ -42,10 +42,9 @@ public class TransactionService {
         // Find target account
         Account targetAccount = accountService.findByAccountNumber(request.getAccountNumber());
         
-        // Verify user owns the account or is admin
         User currentUser = getCurrentUser();
-        if (!targetAccount.getUser().getId().equals(currentUser.getId()) && !isAdmin()) {
-            throw new RuntimeException("Access denied: You can only deposit to your own accounts");
+        if (!hasAccountAccess(targetAccount, currentUser)) {
+            throw new RuntimeException("Access denied: Only account owner, admin, or teller can deposit");
         }
         
         // Verify account is active
@@ -84,10 +83,9 @@ public class TransactionService {
         // Find source account
         Account sourceAccount = accountService.findByAccountNumber(request.getAccountNumber());
         
-        // Verify user owns the account or is admin
         User currentUser = getCurrentUser();
-        if (!sourceAccount.getUser().getId().equals(currentUser.getId()) && !isAdmin()) {
-            throw new RuntimeException("Access denied: You can only withdraw from your own accounts");
+        if (!hasAccountAccess(sourceAccount, currentUser)) {
+            throw new RuntimeException("Access denied: Only account owner, admin, or teller can withdraw");
         }
         
         // Verify account is active
@@ -137,7 +135,6 @@ public class TransactionService {
         Account sourceAccount = accountService.findByAccountNumber(request.getSourceAccountNumber());
         Account targetAccount = accountService.findByAccountNumber(request.getTargetAccountNumber());
         
-        // Verify user owns the source account or is admin
         User currentUser = getCurrentUser();
         if (!sourceAccount.getUser().getId().equals(currentUser.getId()) && !isAdmin()) {
             throw new RuntimeException("Access denied: You can only transfer from your own accounts");
@@ -189,16 +186,20 @@ public class TransactionService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
         
-        // Verify user owns the account or is admin
         User currentUser = getCurrentUser();
-        if (!account.getUser().getId().equals(currentUser.getId()) && !isAdmin()) {
-            throw new RuntimeException("Access denied: You can only view transactions for your own accounts");
+        if (!account.getUser().getId().equals(currentUser.getId()) && !isAdmin() && !isTeller()) {
+            throw new RuntimeException("Access denied: Only the account owner, teller, or admin can view these transactions");
         }
         
         List<Transaction> transactions = transactionRepository.findBySourceAccountIdOrTargetAccountId(accountId, accountId);
         return transactions.stream()
                 .map(TransactionResponse::new)
                 .toList();
+    }
+
+    public Page<TransactionResponse> getAllTransactions(Pageable pageable) {
+        Page<Transaction> transactions = transactionRepository.findAll(pageable);
+        return transactions.map(TransactionResponse::new);
     }
     
     public Page<TransactionResponse> getUserTransactions(Pageable pageable) {
@@ -218,8 +219,8 @@ public class TransactionService {
                 (transaction.getTargetAccount() != null && 
                 transaction.getTargetAccount().getUser().getId().equals(currentUser.getId()));
         
-        if (!isUserInvolved && !isAdmin()) {
-            throw new RuntimeException("Access denied: You can only view your own transactions");
+        if (!isUserInvolved && !isAdmin() && !isTeller()) {
+            throw new RuntimeException("Access denied: Only involved parties, tellers, or admins can view this transaction");
         }
         
         return new TransactionResponse(transaction);
@@ -233,8 +234,20 @@ public class TransactionService {
     }
     
     private boolean isAdmin() {
+        return hasAuthority("ROLE_ADMIN");
+    }
+
+    private boolean isTeller() {
+        return hasAuthority("ROLE_TELLER");
+    }
+
+    private boolean hasAuthority(String authority) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals(authority));
+    }
+
+    private boolean hasAccountAccess(Account account, User currentUser) {
+        return account.getUser().getId().equals(currentUser.getId()) || isAdmin() || isTeller();
     }
 }

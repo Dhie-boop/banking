@@ -32,18 +32,28 @@ public class AccountService {
     }
     
     public AccountResponse createAccount(AccountCreateRequest request) {
-        // Get current authenticated user
-        User user = getCurrentUser();
+        User currentUser = getCurrentUser();
+        User targetUser;
+
+        if (request.getUserId() != null) {
+            if (!isAdmin()) {
+                throw AccessDeniedException.adminRequired();
+            }
+
+            targetUser = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new UserNotFoundException("id", request.getUserId().toString()));
+        } else {
+            targetUser = currentUser;
+        }
         
-        // Check if user already has 3 accounts (business rule)
-        long accountCount = accountRepository.countActiveAccountsByUserId(user.getId());
+        long accountCount = accountRepository.countActiveAccountsByUserId(targetUser.getId());
         if (accountCount >= 3) {
             throw new RuntimeException("User cannot have more than 3 active accounts");
         }
         
         // Create new account
         Account account = new Account();
-        account.setUser(user);
+        account.setUser(targetUser);
         account.setAccountType(request.getAccountType());
         account.setBalance(BigDecimal.ZERO);
         account.setIsActive(true);
@@ -107,6 +117,21 @@ public class AccountService {
         account.setIsActive(false);
         Account savedAccount = accountRepository.save(account);
         return new AccountResponse(savedAccount);
+    }
+
+    public void deleteAccount(Long accountId) {
+        if (!isAdmin()) {
+            throw AccessDeniedException.adminRequired();
+        }
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        if (account.getBalance().compareTo(BigDecimal.ZERO) != 0) {
+            throw new RuntimeException("Cannot delete account with non-zero balance");
+        }
+
+        accountRepository.delete(account);
     }
     
     public Account findByAccountNumber(String accountNumber) {

@@ -141,4 +141,17 @@ public class AccountController {
                     .body(new MessageResponse(e.getMessage()));
         }
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete account", description = "Permanently delete an account (admin only, zero balance required)")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteAccount(@PathVariable Long id) {
+        try {
+            accountService.deleteAccount(id);
+            return ResponseEntity.ok(new MessageResponse("Account deleted successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse(e.getMessage()));
+        }
+    }
 }

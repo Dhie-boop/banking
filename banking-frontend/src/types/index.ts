@@ -25,6 +25,7 @@ export interface RegisterRequest {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
+  role?: 'ADMIN' | 'CUSTOMER' | 'TELLER';
 }
 
 export interface AuthResponse {
@@ -57,6 +58,7 @@ export interface Account {
 
 export interface CreateAccountRequest {
   accountType: 'CHECKING' | 'SAVINGS';
+  userId?: string;
 }
 
 // Transaction types

@@ -13,6 +13,7 @@ import { accountAPI, userAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import type { Account, User, CreateAccountRequest } from '../../types';
 import { normalizeAccountsResponse } from '../../utils/apiUtils';
+import { formatCurrency } from '../../utils/currency';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -156,7 +157,7 @@ function AccountDetailsModal({ isOpen, onClose, account }: AccountDetailsModalPr
           <div>
             <label className="block text-sm font-medium text-gray-700">Balance</label>
             <p className="mt-1 text-lg font-bold text-green-600">
-              ${account.balance.toFixed(2)}
+              {formatCurrency(account.balance)}
             </p>
           </div>
 
@@ -402,7 +403,7 @@ export default function AccountsManagement() {
           <div className="flex items-center">
             <FiDollarSign className="h-8 w-8 text-green-600" />
             <div className="ml-3">
-              <p className="text-2xl font-bold text-gray-900">${getTotalBalance().toFixed(2)}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(getTotalBalance())}</p>
               <p className="text-gray-500">Total Balance</p>
             </div>
           </div>
@@ -514,7 +515,7 @@ export default function AccountsManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      ${account.balance.toFixed(2)}
+                      {formatCurrency(account.balance)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

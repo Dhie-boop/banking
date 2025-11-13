@@ -16,6 +16,7 @@ import { accountAPI, transactionAPI, dashboardAPI } from '../services/api';
 import { toast } from 'react-toastify';
 import type { Account, Transaction, DashboardStats } from '../types';
 import { normalizeObjectResponse, normalizeTransactionsResponse, normalizeAccountsResponse } from '../utils/apiUtils';
+import { formatCurrency } from '../utils/currency';
 
 export default function CustomerDashboard() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -152,7 +153,7 @@ export default function CustomerDashboard() {
               <div>
                 <p className="text-2xl font-bold text-white">
                   {showBalance 
-                    ? `$${totalBalance.toFixed(2)}` 
+                    ? formatCurrency(totalBalance)
                     : '••••••'
                   }
                 </p>
@@ -215,7 +216,7 @@ export default function CustomerDashboard() {
                       </h4>
                       <p className="text-sm text-gray-500">{account.accountNumber}</p>
                       <p className="text-sm font-medium text-gray-900">
-                        ${account.balance.toFixed(2)}
+                        {formatCurrency(account.balance)}
                       </p>
                     </div>
                   </div>

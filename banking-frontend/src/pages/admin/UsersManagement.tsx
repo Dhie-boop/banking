@@ -12,6 +12,7 @@ import {
 import { userAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import type { User, RegisterRequest } from '../../types';
+import { normalizeUsersResponse } from '../../utils/apiUtils';
 
 interface UserModalProps {
   isOpen: boolean;
@@ -64,10 +65,9 @@ function UserModal({ isOpen, onClose, onSave, user, mode }: UserModalProps) {
     } else if (user) {
       onSave({
         id: user.id,
-        username: formData.username,
         email: formData.email,
-        role: formData.role,
-        fullName: `${formData.firstName} ${formData.lastName}`.trim(),
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         phoneNumber: formData.phoneNumber
       });
     }
@@ -119,7 +119,8 @@ function UserModal({ isOpen, onClose, onSave, user, mode }: UserModalProps) {
               required
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={mode === 'edit'}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
             />
           </div>
 
@@ -170,7 +171,8 @@ function UserModal({ isOpen, onClose, onSave, user, mode }: UserModalProps) {
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value as 'ADMIN' | 'CUSTOMER' | 'TELLER' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={mode === 'edit'}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
             >
               <option value="CUSTOMER">Customer</option>
               <option value="TELLER">Teller</option>
@@ -260,8 +262,8 @@ export default function UsersManagement() {
     try {
       setLoading(true);
       const data = await userAPI.getAllUsers();
-      // Handle paginated response
-      setUsers(Array.isArray(data) ? data : data.content || []);
+      const normalized = normalizeUsersResponse(data);
+      setUsers(normalized);
     } catch (error) {
       console.error('Error loading users:', error);
       toast.error('Failed to load users');
@@ -313,8 +315,13 @@ export default function UsersManagement() {
         await userAPI.createUser(userData as RegisterRequest);
         toast.success('User created successfully');
       } else {
-        const { id, ...updateData } = userData as (Partial<User> & { id: string });
-        await userAPI.updateUser(id, updateData);
+        const { id, firstName, lastName, email, phoneNumber } = userData as (Partial<User> & { id: string });
+        await userAPI.updateUser(id, {
+          firstName,
+          lastName,
+          email,
+          phoneNumber,
+        });
         toast.success('User updated successfully');
       }
       

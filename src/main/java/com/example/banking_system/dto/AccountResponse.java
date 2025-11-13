@@ -20,6 +20,9 @@ public class AccountResponse {
     private Boolean isActive;
     private LocalDateTime createdAt;
     private String ownerName;
+    private Long userId;
+    private String username;
+    private String email;
     
     public AccountResponse(Account account) {
         this.id = account.getId();
@@ -28,6 +31,9 @@ public class AccountResponse {
         this.accountType = account.getAccountType();
         this.isActive = account.getIsActive();
         this.createdAt = account.getCreatedAt();
-        this.ownerName = account.getUser().getFirstName() + " " + account.getUser().getLastName();
+        this.ownerName = account.getUser().getUsername();
+        this.userId = account.getUser().getId();
+        this.username = account.getUser().getUsername();
+        this.email = account.getUser().getEmail();
     }
 }

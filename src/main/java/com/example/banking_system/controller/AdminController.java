@@ -1,5 +1,6 @@
 package com.example.banking_system.controller;
 
+import com.example.banking_system.dto.AdminUserRequest;
 import com.example.banking_system.dto.MessageResponse;
 import com.example.banking_system.dto.RegisterRequest;
 import com.example.banking_system.dto.TransactionResponse;
@@ -17,6 +18,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -76,10 +78,45 @@ public class AdminController {
             user.getRoles().iterator().next().getName().name(),
             user.isEnabled(),
             user.getCreatedAt(),
-            user.getAccounts().size()
+            user.getAccounts().size(),
+            user.getFirstName(),
+            user.getLastName(),
+            user.getPhoneNumber()
         ));
         
         return ResponseEntity.ok(userSummaries);
+    }
+
+    @PostMapping("/users")
+    @Operation(
+        summary = "Create user",
+        description = "Create a new user with the specified role. Admin access required."
+    )
+    public ResponseEntity<?> createUser(@Valid @RequestBody AdminUserRequest request) {
+        try {
+            Role.RoleName role = request.getRole() != null ? request.getRole() : Role.RoleName.CUSTOMER;
+            User createdUser = (role == Role.RoleName.CUSTOMER)
+                    ? authService.registerUser(request)
+                    : authService.createAdminUser(request, role);
+
+            UserSummary summary = new UserSummary(
+                createdUser.getId(),
+                createdUser.getUsername(),
+                createdUser.getEmail(),
+                createdUser.getRoles().iterator().next().getName().name(),
+                createdUser.isEnabled(),
+                createdUser.getCreatedAt(),
+                createdUser.getAccounts() != null ? createdUser.getAccounts().size() : 0,
+                createdUser.getFirstName(),
+                createdUser.getLastName(),
+                createdUser.getPhoneNumber()
+            );
+
+            return ResponseEntity.ok(summary);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse(e.getMessage()));
+        }
     }
 
     /**
@@ -169,9 +206,13 @@ public class AdminController {
         private boolean enabled;
         private java.time.LocalDateTime createdAt;
         private int accountCount;
+        private String firstName;
+        private String lastName;
+        private String phoneNumber;
 
         public UserSummary(Long id, String username, String email, String role, 
-                          boolean enabled, java.time.LocalDateTime createdAt, int accountCount) {
+                          boolean enabled, java.time.LocalDateTime createdAt, int accountCount,
+                          String firstName, String lastName, String phoneNumber) {
             this.id = id;
             this.username = username;
             this.email = email;
@@ -179,6 +220,9 @@ public class AdminController {
             this.enabled = enabled;
             this.createdAt = createdAt;
             this.accountCount = accountCount;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.phoneNumber = phoneNumber;
         }
 
         // Getters
@@ -189,6 +233,9 @@ public class AdminController {
         public boolean isEnabled() { return enabled; }
         public java.time.LocalDateTime getCreatedAt() { return createdAt; }
         public int getAccountCount() { return accountCount; }
+        public String getFirstName() { return firstName; }
+        public String getLastName() { return lastName; }
+        public String getPhoneNumber() { return phoneNumber; }
     }
 
     public static class UserDetails {

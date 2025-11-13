@@ -14,6 +14,7 @@ import { userAPI, accountAPI, transactionAPI, dashboardAPI } from '../services/a
 import { toast } from 'react-toastify';
 import type { User, Account, Transaction } from '../types';
 import { normalizeListResponse, normalizeObjectResponse, normalizeTransactionsResponse, normalizeAccountsResponse } from '../utils/apiUtils';
+import { formatCurrency } from '../utils/currency';
 
 // Import the new admin pages
 import UsersManagement from './admin/UsersManagement';
@@ -152,7 +153,7 @@ function AdminOverview() {
         </Card>
 
         <Card title="Total Balance" icon={<FiDollarSign />}>
-          <p className="text-3xl font-bold text-gray-900">${stats.totalBalance.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-gray-900">{formatCurrency(stats.totalBalance)}</p>
           <p className="text-gray-500 text-sm">System-wide balance</p>
         </Card>
 

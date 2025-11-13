@@ -8,6 +8,9 @@ import authService from './services/auth';
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
+const CustomerAccounts = lazy(() => import('./pages/customer/MyAccounts'));
+const CustomerTransactions = lazy(() => import('./pages/customer/Transactions'));
+const CustomerTransfer = lazy(() => import('./pages/customer/Transfer'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const TellerDashboard = lazy(() => import('./pages/TellerDashboard'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -61,6 +64,30 @@ function App() {
               element={
                 <ProtectedRoute roles={['CUSTOMER']}>
                   <CustomerDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/accounts" 
+              element={
+                <ProtectedRoute roles={['CUSTOMER']}>
+                  <CustomerAccounts />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/transactions" 
+              element={
+                <ProtectedRoute roles={['CUSTOMER']}>
+                  <CustomerTransactions />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/transfer" 
+              element={
+                <ProtectedRoute roles={['CUSTOMER']}>
+                  <CustomerTransfer />
                 </ProtectedRoute>
               } 
             />

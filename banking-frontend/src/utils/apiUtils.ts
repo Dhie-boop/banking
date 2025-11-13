@@ -1,4 +1,4 @@
-import type { Account, Transaction } from '../types';
+import type { Account, Transaction, User } from '../types';
 
 // Utility helpers to normalize backend API responses that may wrap data
 // in pagination or generic response envelopes.
@@ -102,6 +102,16 @@ function coerceString(value: unknown): string | undefined {
   return undefined;
 }
 
+function normalizeUserRole(value: unknown): User['role'] {
+  if (typeof value === 'string') {
+    const upper = value.toUpperCase();
+    if (upper === 'ADMIN' || upper === 'CUSTOMER' || upper === 'TELLER') {
+      return upper as User['role'];
+    }
+  }
+  return 'CUSTOMER';
+}
+
 type RawTransaction = Record<string, unknown> & {
   id?: string | number;
   amount?: number | string;
@@ -181,6 +191,27 @@ export function normalizeAccountsResponse(raw: unknown): Account[] {
     }
 
     const createdAt = coerceString(item.createdAt) ?? new Date().toISOString();
+    const userId = item.userId !== undefined ? String(item.userId) : undefined;
+
+    let user = item.user as User | undefined;
+    const username = coerceString((item as Record<string, unknown>).username);
+    const email = coerceString((item as Record<string, unknown>).email);
+
+    if (!user && username) {
+      user = {
+        id: userId ?? username,
+        username,
+        email: email ?? '',
+        role: 'CUSTOMER',
+        fullName: undefined,
+        firstName: undefined,
+        lastName: undefined,
+        phoneNumber: undefined,
+        createdAt: undefined,
+        enabled: undefined,
+        accountCount: undefined,
+      };
+    }
 
     const normalized: Account = {
       id,
@@ -189,9 +220,62 @@ export function normalizeAccountsResponse(raw: unknown): Account[] {
       balance: coerceNumber(item.balance),
       isActive: typeof item.isActive === 'boolean' ? item.isActive : item.isActive === 'true',
       createdAt,
-  ownerName: coerceString(item.ownerName),
-      userId: item.userId !== undefined ? String(item.userId) : undefined,
-      user: item.user,
+      ownerName: coerceString(item.ownerName),
+      userId,
+      user,
+    };
+
+    acc.push(normalized);
+    return acc;
+  }, []);
+}
+
+type RawUser = Record<string, unknown> & {
+  id?: string | number;
+  username?: string;
+  email?: string;
+  role?: string;
+  enabled?: boolean;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  phoneNumber?: string;
+  createdAt?: string;
+  accountCount?: number;
+};
+
+export function normalizeUsersResponse(raw: unknown): User[] {
+  const rawUsers = normalizeListResponse<RawUser>(raw);
+
+  return rawUsers.reduce<User[]>((acc, item) => {
+    const id = item.id !== undefined ? String(item.id) : undefined;
+    const username = coerceString(item.username);
+    const email = coerceString(item.email);
+
+    if (!id || !username || !email) {
+      return acc;
+    }
+
+    const firstName = coerceString(item.firstName);
+    const lastName = coerceString(item.lastName);
+    const derivedFullName = [firstName, lastName]
+      .filter((value): value is string => typeof value === 'string' && value.trim() !== '')
+      .join(' ')
+      .trim();
+    const fullName = coerceString(item.fullName) ?? (derivedFullName !== '' ? derivedFullName : undefined);
+
+    const normalized: User = {
+      id,
+      username,
+      email,
+      role: normalizeUserRole(item.role),
+      firstName,
+      lastName,
+      fullName,
+      phoneNumber: coerceString(item.phoneNumber),
+      createdAt: coerceString(item.createdAt),
+      enabled: typeof item.enabled === 'boolean' ? item.enabled : undefined,
+      accountCount: typeof item.accountCount === 'number' ? item.accountCount : undefined,
     };
 
     acc.push(normalized);

@@ -13,6 +13,7 @@ import { transactionAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import type { Transaction } from '../../types';
 import { normalizeTransactionsResponse } from '../../utils/apiUtils';
+import { formatCurrency } from '../../utils/currency';
 
 interface TransactionDetailsModalProps {
   isOpen: boolean;
@@ -82,7 +83,7 @@ function TransactionDetailsModal({ isOpen, onClose, transaction }: TransactionDe
             <div>
               <label className="block text-sm font-medium text-gray-700">Amount</label>
               <p className="mt-1 text-lg font-bold text-gray-900">
-                ${Math.abs(transaction.amount).toFixed(2)}
+                {formatCurrency(Math.abs(transaction.amount))}
               </p>
             </div>
           </div>
@@ -485,7 +486,7 @@ export default function TransactionsManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      ${Math.abs(transaction.amount).toFixed(2)}
+                      {formatCurrency(Math.abs(transaction.amount))}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

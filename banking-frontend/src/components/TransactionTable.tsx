@@ -1,5 +1,6 @@
 import type { Transaction } from '../types';
 import { format } from 'date-fns';
+import { formatCurrency } from '../utils/currency';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -54,10 +55,7 @@ export default function TransactionTable({ transactions, loading = false }: Tran
   };
 
   const formatAmount = (amount: number, type: string) => {
-    const formattedAmount = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
+    const formattedAmount = formatCurrency(Math.abs(amount));
 
     if (type === 'WITHDRAWAL') {
       return `-${formattedAmount}`;

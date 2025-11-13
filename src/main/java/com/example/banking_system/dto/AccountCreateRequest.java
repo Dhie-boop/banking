@@ -11,4 +11,6 @@ public class AccountCreateRequest {
     private Account.AccountType accountType;
     
     private String description;
+
+    private Long userId;
 }
