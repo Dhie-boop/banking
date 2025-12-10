@@ -1,12 +1,37 @@
 # Banking System
 
-## Tools & Dependencies
+This repository implements a minimal, realistic banking system. It models core banking flows including user and account management, authenticated access, and basic transactional operations. The backend is built with Spring Boot and Spring Data JPA for reliable, ACID-compliant persistence, while the frontend is a single‑page React application that consumes the backend API.
 
-- **Languages & Runtimes**: Java 21, Node.js 20+
-- **Backend Framework**: Spring Boot 3.5.7 (Spring Web, Spring Security, Spring Data JPA)
-- **Database**: PostgreSQL (production), H2 in-memory (local development & tests)
-- **Build & Utilities**: Maven Wrapper (`mvnw`), Lombok, JWT (Spring Security)
-- **Frontend Stack**: React 19, TypeScript, Vite, Tailwind CSS, React Router, Axios
+Designed to be easy to run locally (H2 in‑memory DB by default) and configurable for production testing against PostgreSQL, the project emphasizes clarity, auditability, and developer ergonomics.
+
+## Key features
+- Secure authentication and authorization
+  - JWT-based authentication integrated with Spring Security.
+  - Role-based access for admin and standard users.
+- User & account management
+  - Create and manage customer profiles and accounts.
+  - Account types, statuses, and basic metadata support.
+- Core transaction operations
+  - Deposits, withdrawals, and internal transfers with audit trails.
+  - Idempotent request handling and transactional consistency.
+- Persistence & seeding
+  - Spring Data JPA for entity mapping and repository access.
+  - H2 in-memory database for local development and tests; PostgreSQL support for production.
+  - Built-in DataSeeder to provide initial users and demo data (including a seeded admin).
+- Frontend SPA
+  - React + TypeScript powered UI using Vite for fast development and HMR.
+  - Tailwind CSS for utility-first styling and responsive dashboards.
+  - Axios-based API client patterns and React Router for navigation.
+- Developer tooling & testing
+  - Maven Wrapper for consistent backend build and run steps.
+  - Frontend ESLint/TypeScript guidance and build scripts.
+  - Unit and integration test scaffolding for backend; production build for frontend.
+
+## Technology stack
+- Backend: Java 21, Spring Boot 3.5.x, Spring Security, Spring Data JPA, Lombok
+- Database: H2 (development/tests), PostgreSQL (recommended for production)
+- Frontend: React 19, TypeScript, Vite, Tailwind CSS, React Router, Axios
+- Build: Maven (mvnw), npm/yarn for frontend
 
 ## Fork, Clone, and Run Locally
 
